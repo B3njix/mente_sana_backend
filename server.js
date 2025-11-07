@@ -188,11 +188,24 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/', (req, res) => {
+  res.send(`
+    <h1>🚀 API de Citas Psicológicas</h1>
+    <p>El servidor está funcionando correctamente.</p>
+    <p>Prueba los siguientes endpoints:</p>
+    <ul>
+      <li><a href="/health">/health</a></li>
+      <li><a href="/api/citas">/api/citas</a></li>
+    </ul>
+  `);
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
   console.log(`API disponible en http://localhost:${PORT}/api/citas`);
 
 });
+
 
 
