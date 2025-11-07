@@ -20,7 +20,7 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT || 5432,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+  ssl: process.env.DB_SSL === 'false' ? { rejectUnauthorized: false } : false
 });
 
 // Verificar conexión a la base de datos
@@ -194,4 +194,5 @@ app.listen(PORT, () => {
   console.log(`API disponible en http://localhost:${PORT}/api/citas`);
 
 });
+
 
