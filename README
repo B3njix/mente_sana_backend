@@ -1,0 +1,192 @@
+# 🗓️ Demo Sistema de Recordatorios - Citas de Psicología
+
+Sistema completo de testing para validar el envío de recordatorios automáticos desde n8n basado en fechas de citas.
+
+## 🎯 Características
+
+- ✅ Crear citas con fechas automáticas (24h futuro, 2h futuro, 1h pasado)
+- 📋 Listado en tiempo real de todas las citas
+- 🔄 Resetear flags de recordatorios individuales o en lote
+- 🗑️ Eliminar citas individuales o todas a la vez
+- 🔌 Test de conexión a base de datos
+- 📊 Vista de estado de recordatorios (enviado/pendiente)
+
+## 📋 Pre-requisitos
+
+- Node.js v14 o superior
+- PostgreSQL 12 o superior
+- Base de datos con la tabla `psicologia.citas_gratuitas` creada
+
+## 🚀 Instalación
+
+### 1. Clonar o crear los archivos del proyecto
+
+```bash
+mkdir demo-citas-recordatorios
+cd demo-citas-recordatorios
+```
+
+### 2. Instalar dependencias
+
+```bash
+npm install
+```
+
+### 3. Configurar variables de entorno
+
+Crea un archivo `.env` basado en `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Edita `.env` con tus credenciales de PostgreSQL:
+
+```env
+PORT=3000
+DB_USER=tu_usuario
+DB_HOST=localhost
+DB_NAME=tu_base_datos
+DB_PASSWORD=tu_password
+DB_PORT=5432
+```
+
+### 4. Crear la tabla en PostgreSQL
+
+Ejecuta el script SQL proporcionado para crear la tabla `psicologia.citas_gratuitas`.
+
+### 5. Iniciar el servidor
+
+```bash
+# Modo producción
+npm start
+
+# Modo desarrollo (con auto-reload)
+npm run dev
+```
+
+El servidor estará corriendo en `http://localhost:3000`
+
+### 6. Abrir el frontend
+
+Abre el archivo `index.html` en tu navegador, o puedes servir el frontend con:
+
+```bash
+# Usando Python
+python -m http.server 8080
+
+# Usando Node (http-server)
+npx http-server -p 8080
+```
+
+Luego accede a `http://localhost:8080`
+
+## 📡 API Endpoints
+
+### Test de Conexión
+```
+GET /api/test-connection
+```
+
+### Listar todas las citas
+```
+GET /api/citas
+```
+
+### Crear una cita
+```
+POST /api/citas
+Body: {
+  "nombre": "Juan Pérez",
+  "email": "juan@ejemplo.com",
+  "telefono": "+503 7777-7777",
+  "tipoFecha": "24h" | "2h" | "1h_pasado"
+}
+```
+
+### Eliminar una cita
+```
+DELETE /api/citas/:id
+```
+
+### Resetear flags de una cita
+```
+PATCH /api/citas/:id/reset-flags
+```
+
+### Resetear flags de todas las citas
+```
+PATCH /api/citas/reset-flags/all
+```
+
+### Eliminar todas las citas
+```
+DELETE /api/citas
+```
+
+## 🔄 Integración con n8n
+
+Este sistema está diseñado para trabajar con n8n. Tu workflow de n8n debería:
+
+1. **Consultar periódicamente** la tabla `psicologia.citas_gratuitas`
+2. **Verificar las fechas** y los campos `recordatorio_*_enviado`
+3. **Enviar recordatorios** según las condiciones:
+   - **24 horas antes**: Si `fecha_cita - 24h ≈ ahora` y `recordatorio_24h_enviado = false`
+   - **2 horas antes**: Si `fecha_cita - 2h ≈ ahora` y `recordatorio_2h_enviado = false`
+   - **Post-cita**: Si `fecha_cita + 1h < ahora` y `recordatorio_post_enviado = false`
+4. **Actualizar los flags** después de enviar cada recordatorio
+
+### Ejemplo de query para n8n:
+
+```sql
+-- Recordatorios 24 horas antes
+SELECT * FROM psicologia.citas_gratuitas
+WHERE recordatorio_24h_enviado = false
+AND fecha_cita BETWEEN NOW() + INTERVAL '23 hours 50 minutes' 
+                   AND NOW() + INTERVAL '24 hours 10 minutes';
+
+-- Recordatorios 2 horas antes
+SELECT * FROM psicologia.citas_gratuitas
+WHERE recordatorio_2h_enviado = false
+AND fecha_cita BETWEEN NOW() + INTERVAL '1 hour 50 minutes' 
+                   AND NOW() + INTERVAL '2 hours 10 minutes';
+
+-- Recordatorios post-cita
+SELECT * FROM psicologia.citas_gratuitas
+WHERE recordatorio_post_enviado = false
+AND fecha_cita < NOW() - INTERVAL '1 hour';
+```
+
+## 🧪 Testing
+
+1. **Test de 24 horas**: Crea una cita con "Cita en 24 horas" y verifica que n8n detecte la cita cerca de las 24h
+2. **Test de 2 horas**: Crea una cita con "Cita en 2 horas" y verifica el recordatorio cercano a las 2h
+3. **Test post-cita**: Crea una cita con "Cita hace 1 hora" y verifica el recordatorio post-cita
+4. **Resetear flags**: Después de probar, resetea los flags para volver a testear
+
+## 🛠️ Solución de Problemas
+
+### El frontend no se conecta al backend
+- Verifica que el servidor esté corriendo en el puerto 3000
+- Revisa que no haya problemas de CORS
+- Comprueba la URL en el frontend (`API_URL` en el JavaScript)
+
+### Error de conexión a PostgreSQL
+- Verifica las credenciales en el archivo `.env`
+- Asegúrate de que PostgreSQL esté corriendo
+- Confirma que la base de datos y la tabla existan
+
+### Los recordatorios no se envían desde n8n
+- Verifica que los queries en n8n estén correctos
+- Revisa los intervalos de tiempo en las condiciones
+- Comprueba que n8n esté actualizando los flags después de enviar
+
+## 📝 Notas
+
+- El sistema actualiza la lista de citas automáticamente cada 30 segundos
+- Los timestamps se muestran en hora local
+- Las citas "pasadas" son útiles para testear recordatorios post-cita inmediatamente
+
+## 📄 Licencia
+
+MIT
